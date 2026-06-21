@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Здоровая разминка с Чебурашкой</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-color: #ff9800; /* Оранжевый, как апельсины Чебурашки */
+            --danger-color: #e53935;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        .timer {
+            font-size: 64px;
+            font-weight: bold;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status-text {
+            font-size: 16px;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        /* Полноэкранный блок разминки */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(30, 20, 10, 0.98); /* Тёплый коричневый оттенок */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay-content {
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Стили для логотипа Чебурашки */
+        .cheburashka-logo {
+            width: 180px;
+            height: auto;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        .overlay h2 {
+            font-size: 32px;
+            color: var(--accent-color);
+            margin: 10px 0;
+        }
+
+        .cheburashka-speech {
+            font-style: italic;
+            color: #ffcc80;
+            font-size: 18px;
+            margin-bottom: 25px;
+        }
+
+        .exercises {
+            text-align: left;
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            padding-left: 20px;
+        }
+
+        .exercises li {
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            box-shadow: 0 5px 15px rgba(229, 57, 53, 0.4);
+        }
+
+        .btn:hover {
+            background-color: #b71c1c;
+            transform: scale(1.05);
+        }
+
+        /* Анимация покачивания Чебурашки */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(3deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Время работать! 🍊</h1>
+        <div class="status-text">До прихода Чебурашки осталось:</div>
+        <div class="timer" id="work-timer">60:00</div>
+    </div>
+
+    <div class="overlay" id="rest-overlay">
+        <div class="overlay-content">
+            
+            <img class="cheburashka-logo" src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Cheburashka_vector_transparent.svg" alt="Чебурашка">
+            
+            <h2>Ген, отложи работу! Пора размяться!</h2>
+            <div class="cheburashka-speech">«Мы строили, строили и наконец построили... А теперь надо потянуться!»</div>
+            
+            <div class="timer" id="rest-timer" style="color: var(--accent-color); margin: 10px 0;">02:00</div>
+            
+            <ul class="exercises">
+                <li>👀 <strong>Бережём глаза:</strong> Посмотри в окно на дальнее дерево 20 секунд, потом поморгай.</li>
+                <li>🧘‍♂️ <strong>Выпрямляем спину:</strong> Встань, сделай глубокий вдох, подними руки и потянись к солнцу.</li>
+                <li>🍊 <strong>Свежесть:</strong> Сделай глоток воды (или съешь апельсинку).</li>
+            </ul>
+
+            <button class="btn" id="skip-btn">Я ещё поработаю</button>
+        </div>
+    </div>
+
+    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
+
+    <script>
+        // Настройки времени в секундах
+        const WORK_DURATION = 3600; // 1 час = 3600 сек
+        const REST_DURATION = 120;  // 2 минуты = 120 сек
+
+        let timer;
+        let timeLeft = WORK_DURATION;
+        let isWorking = true;
+
+        const workTimerDisplay = document.getElementById('work-timer');
+        const restTimerDisplay = document.getElementById('rest-timer');
+        const restOverlay = document.getElementById('rest-overlay');
+        const skipBtn = document.getElementById('skip-btn');
+        const alarmSound = document.getElementById('alarm-sound');
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        function updateTimer() {
+            if (isWorking) {
+                timeLeft--;
+                workTimerDisplay.textContent = formatTime(timeLeft);
+                if (timeLeft <= 0) {
+                    startRestPhase();
+                }
+            } else {
+                timeLeft--;
+                restTimerDisplay.textContent = formatTime(timeLeft);
+                if (timeLeft <= 0) {
+                    startWorkPhase();
+                }
+            }
+        }
+
+        function startRestPhase() {
+            isWorking = false;
+            timeLeft = REST_DURATION;
+            restTimerDisplay.textContent = formatTime(timeLeft);
+            restOverlay.classList.add('active');
+            
+            alarmSound.play().catch(e => console.log("Нужен клик для активации звука"));
+        }
+
+        function startWorkPhase() {
+            isWorking = true;
+            timeLeft = WORK_DURATION;
+            workTimerDisplay.textContent = formatTime(timeLeft);
+            restOverlay.classList.remove('active');
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+        }
+
+        skipBtn.addEventListener('click', startWorkPhase);
+        timer = setInterval(updateTimer, 1000);
+        workTimerDisplay.textContent = formatTime(WORK_DURATION);
+    </script>
+</body>
+</html>
