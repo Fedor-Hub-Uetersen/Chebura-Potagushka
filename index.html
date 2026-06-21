@@ -13,13 +13,19 @@
         .status { font-size: 16px; color: #aaa; }
         .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(25, 18, 12, 0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
         .overlay.active { opacity: 1; pointer-events: auto; }
-        .content { text-align: center; max-width: 500px; padding: 20px; }
+        .content { text-align: center; max-width: 500px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        /* Стили для Чебурашки с ДВУМЯ ушами */
-        .cheburashka { width: 160px; height: 100px; fill: var(--accent); animation: float 4s infinite ease-in-out; margin-bottom: 15px; }
+        .cheburashka-photo { 
+            width: 280px; 
+            height: auto; 
+            border-radius: 20px; 
+            box-shadow: 0 0 25px rgba(255, 152, 0, 0.4); 
+            animation: float 4s infinite ease-in-out; 
+            margin-bottom: 20px; 
+        }
         
         .speech { font-style: italic; color: #ffcc80; font-size: 18px; margin-bottom: 20px; }
-        .exercises { text-align: left; font-size: 18px; line-height: 1.6; margin-bottom: 25px; }
+        .exercises { text-align: left; font-size: 18px; line-height: 1.6; margin-bottom: 25px; width: 100%; }
         .btn-group { display: flex; gap: 15px; justify-content: center; margin-bottom: 15px; }
         .btn { background: transparent; color: #ffcc80; border: 2px solid var(--accent); padding: 12px 25px; font-size: 16px; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
         .btn:hover { background: var(--accent); color: #121212; transform: scale(1.05); }
@@ -32,24 +38,15 @@
 
     <div class="container">
         <h1>Время работать ✨</h1>
-        <div class="status">До разминки осталось:</div>
+        <div class="status" id="status-text">До разминки осталось:</div>
         <div class="timer" id="w-timer">01:00</div>
     </div>
 
     <div class="overlay" id="overlay">
         <div class="content">
             
-            <!-- Исправленный Чебурашка: круглая голова, тело и два больших круглых уха по бокам -->
-            <svg class="cheburashka" viewBox="0 0 40 24">
-                <!-- Левое ухо -->
-                <circle cx="8" cy="10" r="6" />
-                <!-- Правое ухо -->
-                <circle cx="32" cy="10" r="6" />
-                <!-- Голова -->
-                <circle cx="20" cy="10" r="5.5" />
-                <!-- Тело/Плечи -->
-                <path d="M12,22 C12,17 28,17 28,22 Z" />
-            </svg>
+            <!-- Твой медитирующий Чебурашка -->
+            <img class="cheburashka-photo" src="chebi.jpg" alt="Чебурашка медитирует">
             
             <h2>Время разминки! 🧘‍♂️</h2>
             <div class="speech">«Ген, заbasic-уйся... Вдохни поглубже и расправь плечи!»</div>
@@ -57,7 +54,7 @@
             
             <ul class="exercises">
                 <li>👀 <strong>Глаза:</strong> Закрой глаза на 10 секунд, посмотри в окно вдаль.</li>
-                <li>🧘‍♂️ <strong>Спина:</strong> Встань ровно, потянись руками вверх.</li>
+                <li>🧘‍♂️ <strong>Спина:</strong> Встань ровно, потянись лапами вверх.</li>
                 <li>💧 <strong>Вода:</strong> Сделай пару глотков чистой воды.</li>
             </ul>
 
@@ -68,70 +65,92 @@
         </div>
     </div>
 
-    <!-- Аудио-плеер, который берёт музыку из настроек ниже -->
     <audio id="bg-music" preload="auto" loop></audio>
 
     <script>
-        // =========================================================================
-        // НАСТРОЙКИ: ТУТ МОЖНО ВСЁ МЕНЯТЬ САМОМУ
-        // =========================================================================
-        const W_TIME = 3600;   // Время работы в секундах (3600 секунд = 1 час)
-        const R_TIME = 120;  // Время отдыха в секундах (120 секунд = 2 минуты)
-
-        // Ссылка на спокойную фоновую музыку. Можешь заменить адрес в кавычках на свой!
+        // --- НАСТРОЙКИ (в секундах) ---
+        const WORK_DURATION = 60;   // 1 минута работы (потом поменяешь на 3600 для часа)
+        const REST_DURATION = 120;  // 2 минуты отдыха
         const MUSIC_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3";
-        // =========================================================================
+        // ------------------------------
 
-        let work = W_TIME, rest = R_TIME, timer = null;
-
+        let timer = null;
         const wEl = document.getElementById('w-timer');
         const rEl = document.getElementById('r-timer');
         const ovEl = document.getElementById('overlay');
+        const statusEl = document.getElementById('status-text');
         const musicAudio = document.getElementById('bg-music');
         
-        // Назначаем ссылку плееру из настроек сверху
         musicAudio.src = MUSIC_URL;
 
-        function format(s) {
-            return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+        function format(seconds) {
+            if (seconds < 0) seconds = 0;
+            return `${Math.floor(seconds/60).toString().padStart(2,'0')}:${(seconds%60).toString().padStart(2,'0')}`;
         }
 
-        function startWork() {
-            work = W_TIME;
-            wEl.innerText = format(work);
+        // Главный цикл управления временем
+        function updateTimer() {
+            const now = Math.floor(Date.now() / 1000);
+            let endTime = parseInt(localStorage.getItem('chebu_endTime')) || 0;
+            let mode = localStorage.getItem('chebu_mode') || 'work';
+
+            // Если таймер запускается впервые или сброшен
+            if (endTime === 0) {
+                endTime = now + WORK_DURATION;
+                localStorage.setItem('chebu_endTime', endTime);
+                localStorage.setItem('chebu_mode', 'work');
+                mode = 'work';
+            }
+
+            let timeLeft = endTime - now;
+
+            if (timeLeft <= 0) {
+                // Если рабочее время вышло — переключаемся на отдых
+                if (mode === 'work') {
+                    localStorage.setItem('chebu_mode', 'rest');
+                    localStorage.setItem('chebu_endTime', now + REST_DURATION);
+                    ovEl.classList.add('active');
+                    wEl.innerText = format(0);
+                    rEl.innerText = format(REST_DURATION);
+                } else {
+                    // Если время отдыха вышло — возвращаемся к работе
+                    startWorkMode();
+                }
+            } else {
+                // Обычный отсчёт времени
+                if (mode === 'work') {
+                    ovEl.classList.remove('active');
+                    wEl.innerText = format(timeLeft);
+                } else {
+                    ovEl.classList.add('active');
+                    rEl.innerText = format(timeLeft);
+                }
+            }
+        }
+
+        function startWorkMode() {
+            const now = Math.floor(Date.now() / 1000);
+            localStorage.setItem('chebu_mode', 'work');
+            localStorage.setItem('chebu_endTime', now + WORK_DURATION);
             ovEl.classList.remove('active');
             
             musicAudio.pause();
             musicAudio.currentTime = 0;
             
-            clearInterval(timer);
-            timer = setInterval(() => {
-                work--;
-                wEl.innerText = format(work);
-                if (work <= 0) { clearInterval(timer); startRest(); }
-            }, 1000);
+            wEl.innerText = format(WORK_DURATION);
         }
 
-        function startRest() {
-            rest = R_TIME;
-            rEl.innerText = format(rest);
-            ovEl.classList.add('active');
-            
-            clearInterval(timer);
-            timer = setInterval(() => {
-                rest--;
-                rEl.innerText = format(rest);
-                if (rest <= 0) { clearInterval(timer); startWork(); }
-            }, 1000);
-        }
+        // Запуск интервала (проверка каждую секунду)
+        clearInterval(timer);
+        timer = setInterval(updateTimer, 1000);
+        updateTimer(); // Инициализация при старте
 
+        // Кнопки
         document.getElementById('m-btn').addEventListener('click', () => {
-            musicAudio.play().catch(e => console.log("Браузер заблокировал звук"));
+            musicAudio.play().catch(e => console.log("Звук заблокирован"));
         });
 
-        document.getElementById('s-btn').addEventListener('click', startWork);
-
-        startWork();
+        document.getElementById('s-btn').addEventListener('click', startWorkMode);
     </script>
 </body>
 </html>
