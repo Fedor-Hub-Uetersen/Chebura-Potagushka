@@ -15,6 +15,7 @@
         .overlay.active { opacity: 1; pointer-events: auto; }
         .content { text-align: center; max-width: 500px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
+        /* Стили для вывода твоего сохраненного Чебурашки */
         .cheburashka-photo { 
             width: 280px; 
             height: auto; 
@@ -44,7 +45,9 @@
 
     <div class="overlay" id="overlay">
         <div class="content">
+            
             <img class="cheburashka-photo" src="chebi.jpg" alt="Чебурашка медитирует">
+            
             <h2>Время разминки! 🧘‍♂️</h2>
             <div class="speech">«Ген, заbasic-уйся... Вдохни поглубже и расправь плечи!»</div>
             <div class="timer" id="r-timer" style="color: var(--accent);">02:00</div>
@@ -66,7 +69,7 @@
 
     <script>
         // --- НАСТРОЙКИ (в секундах) ---
-        const WORK_DURATION = 60;   // 1 минута работы для теста
+        const WORK_DURATION = 60;   // 1 минута работы для теста (потом сделаем час)
         const REST_DURATION = 120;  // 2 минуты отдыха
         const MUSIC_URL = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3";
         // ------------------------------
@@ -80,7 +83,7 @@
         
         musicAudio.src = MUSIC_URL;
 
-        // Запрос разрешения на системные уведомления Windows
+        // Включение уведомлений Windows
         if (Notification.permission !== "granted" && Notification.permission !== "denied") {
             Notification.requestPermission();
         }
@@ -119,7 +122,6 @@
                     wEl.innerText = format(0);
                     rEl.innerText = format(REST_DURATION);
                     
-                    // Посылаем сигнал на рабочий стол Windows!
                     sendNotification("Чебурашка зовёт!", "Фёдор, пораbasic-оваться! Время разминки.");
                 } else {
                     startWorkMode();
@@ -128,7 +130,7 @@
                 if (mode === 'work') {
                     ovEl.classList.remove('active');
                     wEl.innerText = format(timeLeft);
-                    notificationSent = false; // Сбрасываем флаг для следующего раза
+                    notificationSent = false;
                 } else {
                     ovEl.classList.add('active');
                     rEl.innerText = format(timeLeft);
